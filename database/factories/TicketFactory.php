@@ -14,12 +14,14 @@ class TicketFactory extends Factory
 
     public function definition(): array
     {
+        $faker = $this->faker;
+
         return [
-            'title'       => substr($this->faker->sentence(6), 0, 255),
-            'description' => $this->faker->paragraph(3),
-            'priority'    => $this->faker->randomElement(Ticket::PRIORITIES),
-            'status'      => $this->faker->randomElement(Ticket::STATUSES),
-            'category'    => $this->faker->randomElement(Ticket::CATEGORIES),
+            'title'       => $faker ? substr($faker->sentence(6), 0, 255) : 'Sample ticket ' . uniqid(),
+            'description' => $faker ? $faker->paragraph(3) : 'Sample ticket description for demonstration.',
+            'priority'    => $faker ? $faker->randomElement(Ticket::PRIORITIES) : Ticket::PRIORITIES[array_rand(Ticket::PRIORITIES)],
+            'status'      => $faker ? $faker->randomElement(Ticket::STATUSES) : Ticket::STATUSES[array_rand(Ticket::STATUSES)],
+            'category'    => $faker ? $faker->randomElement(Ticket::CATEGORIES) : Ticket::CATEGORIES[array_rand(Ticket::CATEGORIES)],
         ];
     }
 }
