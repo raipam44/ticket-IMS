@@ -16,7 +16,7 @@ test.describe('Ticket CRUD', () => {
 
         await expect(page).toHaveURL(/tickets$/);
         await expectToast(page, 'Ticket created.');
-        await expect(page.getByText('My keyboard stopped working')).toBeVisible();
+        await expect(page.getByText('My keyboard stopped working').first()).toBeVisible();
     });
 
     test('create form shows inline errors for short title', async ({ page }) => {
@@ -142,7 +142,7 @@ test.describe('Ticket CRUD', () => {
         await page.getByRole('button', { name: 'Keep ticket' }).click();
 
         await expect(page.getByRole('dialog')).not.toBeVisible();
-        await expect(page.getByText('Should not be deleted')).toBeVisible();
+        await expect(page.getByRole('heading', { name: 'Should not be deleted' })).toBeVisible();
     });
 
     test('pagination shows when there are more than 10 tickets', async ({ page }) => {
@@ -167,10 +167,13 @@ test.describe('Ticket CRUD', () => {
         await createTicket(page, { title: 'Resolved ticket filter test', status: 'Resolved' });
 
         await page.goto('/tickets');
-        await page.getByLabel('Filter by status').selectOption('Open');
+        await Promise.all([
+            page.waitForURL(/status=Open/),
+            page.getByLabel('Filter by status').selectOption('Open'),
+        ]);
 
-        await expect(page.getByText('Open ticket filter test')).toBeVisible();
-        await expect(page.getByText('Resolved ticket filter test')).not.toBeVisible();
+        await expect(page.getByText('Open ticket filter test').first()).toBeVisible();
+        await expect(page.getByText('Resolved ticket filter test')).toHaveCount(0);
     });
 
 });

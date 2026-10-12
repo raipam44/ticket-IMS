@@ -1,5 +1,5 @@
 import { test, expect } from '@playwright/test';
-import { registerUser, loginUser } from './helpers.js';
+import { registerUser, loginUser, logoutUser } from './helpers.js';
 
 test.describe('Authentication', () => {
 
@@ -15,7 +15,9 @@ test.describe('Authentication', () => {
 
     test('register page loads', async ({ page }) => {
         await page.goto('/register');
-        await expect(page.getByRole('heading', { name: /create your account/i })).toBeVisible();
+        await expect(page.getByRole('button', { name: 'Register' })).toBeVisible();
+        await expect(page.getByLabel('Name')).toBeVisible();
+        await expect(page.getByLabel('Email')).toBeVisible();
     });
 
     test('user can register and land on dashboard', async ({ page }) => {
@@ -28,7 +30,7 @@ test.describe('Authentication', () => {
         const { email } = await registerUser(page);
 
         // Log out
-        await page.getByRole('button', { name: /log out/i }).click();
+        await logoutUser(page);
 
         // Try registering again with same email
         await page.goto('/register');
@@ -44,7 +46,7 @@ test.describe('Authentication', () => {
 
     test('login shows error for wrong password', async ({ page }) => {
         const { email } = await registerUser(page);
-        await page.getByRole('button', { name: /log out/i }).click();
+        await logoutUser(page);
 
         await page.goto('/login');
         await page.getByLabel('Email').fill(email);
@@ -56,7 +58,7 @@ test.describe('Authentication', () => {
 
     test('user can log out', async ({ page }) => {
         await registerUser(page);
-        await page.getByRole('button', { name: /log out/i }).click();
+        await logoutUser(page);
         await expect(page).toHaveURL(/login|\/$/);
     });
 

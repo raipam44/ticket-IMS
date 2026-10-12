@@ -25,8 +25,8 @@ return Application::configure(basePath: dirname(__DIR__))
     ->withExceptions(function (Exceptions $exceptions): void {
         $exceptions->respond(function (Response $response, Throwable $e, Request $request) {
             if (
-                ! app()->environment(['local', 'testing'])
-                && in_array($response->getStatusCode(), [403, 404, 419, 500, 503])
+                in_array($response->getStatusCode(), [403, 404, 419])
+                || (! app()->hasDebugModeEnabled() && in_array($response->getStatusCode(), [500, 503]))
             ) {
                 return Inertia::render('Error', ['status' => $response->getStatusCode()])
                     ->toResponse($request)

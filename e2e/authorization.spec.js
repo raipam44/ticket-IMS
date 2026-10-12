@@ -1,5 +1,5 @@
 import { test, expect } from '@playwright/test';
-import { registerUser, createTicket } from './helpers.js';
+import { registerUser, createTicket, logoutUser } from './helpers.js';
 
 test.describe('Authorization', () => {
 
@@ -10,12 +10,13 @@ test.describe('Authorization', () => {
 
         // Get the ticket ID from the URL on show page
         await page.getByRole('link', { name: title }).first().click();
+        await page.waitForURL(/\/tickets\/\d+/);
         const url      = page.url();
         const ticketId = url.match(/\/tickets\/(\d+)/)?.[1];
         expect(ticketId).toBeTruthy();
 
         // Log out user A
-        await page.getByRole('button', { name: /log out/i }).click();
+        await logoutUser(page);
 
         // Register + log in as user B
         await registerUser(page);
@@ -34,9 +35,10 @@ test.describe('Authorization', () => {
         const title  = await createTicket(page, { title: 'User A edit target' });
 
         await page.getByRole('link', { name: title }).first().click();
+        await page.waitForURL(/\/tickets\/\d+/);
         const ticketId = page.url().match(/\/tickets\/(\d+)/)?.[1];
 
-        await page.getByRole('button', { name: /log out/i }).click();
+        await logoutUser(page);
         await registerUser(page);
 
         await page.goto(`/tickets/${ticketId}/edit`);
@@ -48,7 +50,7 @@ test.describe('Authorization', () => {
         await registerUser(page);
         await createTicket(page, { title: 'User A ticket one' });
         await createTicket(page, { title: 'User A ticket two' });
-        await page.getByRole('button', { name: /log out/i }).click();
+        await logoutUser(page);
 
         // User B creates a ticket
         await registerUser(page);
@@ -56,7 +58,7 @@ test.describe('Authorization', () => {
 
         // User B should only see their own ticket
         await page.goto('/tickets');
-        await expect(page.getByText('User B private ticket')).toBeVisible();
+        await expect(page.getByText('User B private ticket').first()).toBeVisible();
         await expect(page.getByText('User A ticket one')).not.toBeVisible();
         await expect(page.getByText('User A ticket two')).not.toBeVisible();
     });
@@ -65,7 +67,10 @@ test.describe('Authorization', () => {
 
 test.describe('Responsive layout', () => {
 
-    // These tests run on the 'mobile' project (393px Pixel 5)
+    test.beforeEach(async ({ page }) => {
+        await page.setViewportSize({ width: 393, height: 851 });
+    });
+
     test('nav shows hamburger menu on mobile', async ({ page }) => {
         await registerUser(page);
         // Hamburger button should be visible, desktop links hidden
@@ -82,7 +87,7 @@ test.describe('Responsive layout', () => {
         await registerUser(page);
         await page.getByLabel('Open menu').click();
         await expect(page.getByRole('link', { name: 'Dashboard' })).toBeVisible();
-        await expect(page.getByRole('link', { name: 'Tickets' })).toBeVisible();
+        await expect(page.getByRole('link', { name: 'Tickets', exact: true })).toBeVisible();
     });
 
     test('ticket list shows stub cards on mobile, not table', async ({ page }) => {

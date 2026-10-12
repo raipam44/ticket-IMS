@@ -8,10 +8,10 @@ A secure, single-page-app-feeling support ticket manager built with **Laravel 12
 
 ## Demo Credentials
 
-| Field    | Value               |
-|----------|---------------------|
-| Email    | demo@helpdesk.test  |
-| Password | Demo@12345          |
+| Role | Email | Password | Details |
+|---|---|---|---|
+| Primary Demo | `demo@helpdesk.test` | `Demo@12345` | Seeded with 15 realistic IT tickets |
+| Secondary Demo | `jane@helpdesk.test` | `Demo@12345` | Seeded with 3 tickets (for cross-user authorization tests) |
 
 ## Stack
 

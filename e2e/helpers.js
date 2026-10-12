@@ -55,3 +55,15 @@ export async function createTicket(page, overrides = {}) {
 export async function expectToast(page, text) {
     await expect(page.getByRole('status').or(page.getByRole('alert'))).toContainText(text);
 }
+
+/**
+ * Log out current user handling both desktop and mobile drawer.
+ */
+export async function logoutUser(page) {
+    const menuBtn = page.getByLabel('Open menu');
+    if (await menuBtn.isVisible().catch(() => false)) {
+        await menuBtn.click();
+    }
+    await page.getByRole('button', { name: /log out/i }).click();
+    await page.waitForURL(/login|\/$/);
+}
