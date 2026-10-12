@@ -4,7 +4,6 @@ set -e
 cd /var/www/html
 
 # Only generate a key when APP_KEY is not already set.
-# On Railway you should set APP_KEY as an env var so it is stable across restarts.
 if [ -z "$APP_KEY" ]; then
     echo "==> APP_KEY not set — generating a new one..."
     php artisan key:generate --no-interaction --force
@@ -16,20 +15,28 @@ php artisan config:cache
 echo "==> Caching routes..."
 php artisan route:cache
 
-# Wait for the database to accept connections (up to 60 s)
-echo "==> Waiting for database..."
-MAX_WAIT=60
+# Wait for MySQL to accept TCP connections (up to 90 s)
+echo "==> Waiting for database at ${DB_HOST}:${DB_PORT}..."
+MAX_WAIT=90
 WAITED=0
-until php artisan db:show --no-interaction >/dev/null 2>&1; do
+until php -r "
+    \$c = @fsockopen(getenv('DB_HOST'), (int)getenv('DB_PORT'), \$e, \$m, 2);
+    if (\$c) { fclose(\$c); exit(0); }
+    exit(1);
+" 2>/dev/null; do
     if [ "$WAITED" -ge "$MAX_WAIT" ]; then
-        echo "ERROR: database did not become ready within ${MAX_WAIT}s — check DB_HOST / DB_PORT / credentials"
+        echo "ERROR: DB_HOST=${DB_HOST} DB_PORT=${DB_PORT} did not accept connections within ${MAX_WAIT}s"
+        echo "Check that DB_HOST, DB_PORT, DB_USERNAME, DB_PASSWORD are set correctly in Railway."
         exit 1
     fi
     sleep 2
     WAITED=$((WAITED + 2))
     echo "    still waiting... (${WAITED}s)"
 done
-echo "==> Database is ready."
+echo "==> Database is accepting connections."
+
+# Small extra sleep so MySQL finishes initializing after accepting the socket
+sleep 2
 
 echo "==> Running migrations..."
 php artisan migrate --force --no-interaction
