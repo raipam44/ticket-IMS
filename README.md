@@ -75,10 +75,56 @@ Visit `http://localhost:8000` and log in with the demo credentials above.
 - React escapes all output by default — no `dangerouslySetInnerHTML`
 - `.env` is git-ignored; `.env.example` (no real values) is committed
 
-## Deployment (Railway)
+## Local development with Docker
 
-1. Create a Railway project from this GitHub repo
-2. Add a MySQL service to the project
-3. Set environment variables in the Railway dashboard (see `SPEC.md §11.2`)
-4. Build command: `composer install --no-dev --optimize-autoloader && npm ci && npm run build`
-5. Start command: `php artisan migrate --force && php artisan db:seed --force && php artisan serve --host=0.0.0.0 --port=$PORT`
+```bash
+docker compose up --build
+```
+
+Visit `http://localhost:8080`. The app, MySQL, migrations, and demo seed all start automatically.
+
+To reset the database:
+```bash
+docker compose down -v   # removes volumes
+docker compose up --build
+```
+
+## Deployment (Railway — Docker)
+
+The project ships a `Dockerfile` that builds a single self-contained image (Nginx + PHP-FPM via Supervisord, pre-built Vite assets). Railway detects the `Dockerfile` automatically.
+
+### Steps
+
+1. Push this repo to GitHub
+2. On Railway: **New Project → Deploy from GitHub repo** — select this repo
+3. Add a **MySQL** database service to the same project
+4. Set the following environment variables on the **app service** in Railway's dashboard:
+
+| Variable | Value |
+|---|---|
+| `APP_NAME` | HelpDesk |
+| `APP_ENV` | production |
+| `APP_DEBUG` | false |
+| `APP_KEY` | _(leave blank — entrypoint generates it)_ |
+| `APP_URL` | `https://<your-app>.up.railway.app` |
+| `DB_CONNECTION` | mysql |
+| `DB_HOST` | `${{MySQL.MYSQLHOST}}` |
+| `DB_PORT` | `${{MySQL.MYSQLPORT}}` |
+| `DB_DATABASE` | `${{MySQL.MYSQLDATABASE}}` |
+| `DB_USERNAME` | `${{MySQL.MYSQLUSER}}` |
+| `DB_PASSWORD` | `${{MySQL.MYSQLPASSWORD}}` |
+| `SESSION_DRIVER` | database |
+| `LOG_CHANNEL` | stderr |
+
+> The `${{MySQL.MYSQLHOST}}` syntax is Railway's variable reference — it pulls the value from the MySQL service automatically. Check the MySQL service Variables tab for the exact names.
+
+5. Set the **exposed port** to `8080` in Railway's service settings
+6. Deploy — Railway builds the Docker image, the entrypoint runs migrations and seeds the demo account, then starts Nginx + PHP-FPM
+
+### What the entrypoint does on every start
+
+```
+key:generate → config:cache → route:cache → migrate --force → db:seed --force → supervisord
+```
+
+`db:seed` uses `firstOrCreate` so re-deploys never duplicate the demo account or tickets.
